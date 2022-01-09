@@ -1,0 +1,71 @@
+{
+  "name": "Eos Stats",
+  "description": "Plugin to show up statistics from Eos Study",
+  "container-image": {
+    "image": "glardies/s_eos-stats",
+    "type": "singularity"
+  },
+  "command-line": "[CYTOMINE_HOST] [CYTOMINE_PUBLIC_KEY] [CYTOMINE_PRIVATE_KEY] [CYTOMINE_ID_PROJECT] [CYTOMINE_ID_SOFTWARE] [[CYTOMINE_ID_ONTOLOGY] [CYTOMINE_ID_ANNOTATION]  [TERMS_TO_ANALYZE] [IMAGES_TO_ANALYZE]",
+  "inputs": [
+    {
+      "id": "cytomine_host",
+      "value-key": "[@ID]",
+      "command-line-flag": "--@id",
+      "name": "Cytomine host",
+      "set-by-server": true,
+      "optional": false,
+      "type": "String"
+    },
+    {
+      "id": "cytomine_public_key",
+      "value-key": "[@ID]",
+      "command-line-flag": "--@id",
+      "name": "Cytomine public key",
+      "set-by-server": true,
+      "optional": false,
+      "type": "String"
+    },
+    {
+      "id": "cytomine_private_key",
+      "value-key": "[@ID]",
+      "command-line-flag": "--@id",
+      "name": "Cytomine private key",
+      "set-by-server": true,
+      "optional": false,
+      "type": "String"
+    },
+    {
+      "id": "cytomine_id_project",
+      "value-key": "[@ID]",
+      "command-line-flag": "--@id",
+      "name": "Cytomine project ID",
+      "set-by-server": true,
+      "optional": true,
+      "type": "Number"
+    },
+    {
+      "id": "cytomine_id_software",
+      "value-key": "[@ID]",
+      "command-line-flag": "--@id",
+      "name": "Cytomine software ID",
+      "set-by-server": true,
+      "optional": true,
+      "type": "Number"
+    },
+    {
+      "id": "images_to_analyze",
+      "description": "Imagen que contiene la anotación (opcional)",
+      "value-key": "[@ID]",
+      "command-line-flag": "--@id",
+      "name": "Cytomine image",
+      "set-by-server": false,
+      "optional": true,
+      "type": "Domain",
+      "uri":"/api/project/$currentProject$/imageinstance.json",
+      "uri-print-attribute":"instanceFilename",
+      "uri-sort-attribute":"instanceFilename"
+    }
+  ],
+
+  "schema-version": "cytomine-0.1"
+}
