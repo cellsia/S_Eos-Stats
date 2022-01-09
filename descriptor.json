@@ -53,7 +53,16 @@
       "type": "Number"
     },
     {
-      "id": "images_to_analyze",
+      "id": "job_id",
+      "value-key": "[@ID]",
+      "command-line-flag": "--@id",
+      "name": "upload ia results job ID",
+      "set-by-server": false,
+      "optional": true,
+      "type": "Number"
+    },
+    {
+      "id": "image_to_analyze",
       "description": "Imagen que contiene la anotación (opcional)",
       "value-key": "[@ID]",
       "command-line-flag": "--@id",
