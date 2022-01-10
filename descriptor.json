@@ -5,7 +5,7 @@
     "image": "glardies/s_eos-stats",
     "type": "singularity"
   },
-  "command-line": "[CYTOMINE_HOST] [CYTOMINE_PUBLIC_KEY] [CYTOMINE_PRIVATE_KEY] [CYTOMINE_ID_PROJECT] [CYTOMINE_ID_SOFTWARE] [JOB_ID]",
+  "command-line": "[CYTOMINE_HOST] [CYTOMINE_PUBLIC_KEY] [CYTOMINE_PRIVATE_KEY] [CYTOMINE_ID_PROJECT] [CYTOMINE_ID_SOFTWARE] [CYTOMINE_IMAGE] [JOB_ID]",
   "inputs": [
     {
       "id": "cytomine_host",
@@ -51,6 +51,18 @@
       "set-by-server": true,
       "optional": true,
       "type": "Number"
+    },
+    {
+      "id": "cytomine_image",
+      "value-key": "[@ID]",
+      "command-line-flag": "--@id",
+      "name": "Cytomine image instance",
+      "set-by-server": false,
+      "optional": false,
+      "type": "Domain",
+      "uri": "/api/project/$currentProject$/imageinstance.json",
+      "uri-print-attribute": "instanceFilename",
+      "uri-sort-attribute": "instanceFilename"
     },
     {
       "id": "job_id",

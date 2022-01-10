@@ -12,7 +12,7 @@ from cytomine.models import ImageInstanceCollection, JobData, AnnotationCollecti
 from cytomine.models.software import JobDataCollection, JobParameterCollection
 
 # software version
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 # software config
 UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
@@ -38,8 +38,9 @@ def _fetch_job_detections(working_path, parameters):
     os.remove(filepath)
 
     points = _convert_rectangles_to_points(detections["rectangles"])
+    white_pixels = detections["white-pixels"]
 
-    return points
+    return points, white_pixels
 
 
 def _convert_rectangles_to_points(rectangles):
@@ -59,7 +60,7 @@ def _convert_rectangles_to_points(rectangles):
     return points
 
 # STEP 2: fetch image and create grid
-def _fetch_image_and_create_grid(parameters):
+def _fetch_image_and_create_grid(parameters, white_pixels):
 
     job_id = parameters.job_id
     jobparameters = JobParameterCollection().fetch_with_filter(key="job", value=job_id)
@@ -85,7 +86,12 @@ def _fetch_image_and_create_grid(parameters):
 
             grid.append(Polygon([[x,y],[x+grid_box_side,y],[x+grid_box_side,y+grid_box_side],[x,y+grid_box_side]]))
 
-    return grid, image_id
+
+    
+    image_surface = res * res * white_pixels * 0.001
+    
+
+    return grid, image_id, image_surface
     
 
 # STEP 3: calculate the highest density polygon
@@ -110,11 +116,16 @@ def _calculate_highest_density_polygon(job_detections, image_grid):
 
 
 # STEP 4: upload eos-stats file
-def _upload_eos_stats_file(job, hd_poly, density):
+def _upload_eos_stats_file(job, hd_poly, density, image_surface, white_pixels, job_detections) -> None:
 
     eos_stats = {
         "number-of-regions":len(hd_poly),
-        "density":density
+        "density":density,
+        "image-surface":image_surface,
+        "white-pixels":white_pixels,
+        "cantidad-total":len(job_detections),
+        "cantidad-media": int(len(job_detections) / image_surface),
+        "diag":_get_diag(len(job_detections))
     }
 
     # ----- upload stats file -----
@@ -126,7 +137,19 @@ def _upload_eos_stats_file(job, hd_poly, density):
     job_data.upload("tmp/"+EOS_STATS_FILENAME)
     os.system("rm tmp/"+EOS_STATS_FILENAME)
 
-    return None
+
+def _get_diag(num):
+
+    if num < 15:
+        return "NEGATIVO PARA ESOFAGITIS EOSINOFÍLICA"
+    elif (15 <= num <= 25):
+        return "INTENSIDAD LEVE"
+    elif (25 < num <= 50):
+        return "INTENSIDAD MODERADA"
+    elif num > 50:
+        return "INTENSIDAD GRAVE"
+
+
 
 
 # STEP 5: upload hd annotation
@@ -159,16 +182,16 @@ def run(cyto_job, parameters):
     try:
 
         # STEP 1: fetch job detections
-        job_detections = _fetch_job_detections(working_path, parameters)
+        job_detections, white_pixels = _fetch_job_detections(working_path, parameters)
         
         # STEP 2: fetch image and create grid
-        image_grid, image_id = _fetch_image_and_create_grid(parameters)
+        image_grid, image_id, image_surface = _fetch_image_and_create_grid(parameters, white_pixels)
 
         # STEP 3: calculate the highest density polygon
         hd_poly, density = _calculate_highest_density_polygon(job_detections, image_grid)
 
         # STEP 4: upload eos-stats file
-        _upload_eos_stats_file(job, hd_poly, density)
+        _upload_eos_stats_file(job, hd_poly, density, image_surface, white_pixels, job_detections)
 
         # STEP 5: upload hd annotation
         _upload_hd_annotation(job, hd_poly, parameters, image_id)
