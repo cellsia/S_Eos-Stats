@@ -12,12 +12,12 @@ from cytomine.models import ImageInstanceCollection, JobData, AnnotationCollecti
 from cytomine.models.software import JobDataCollection, JobParameterCollection
 
 # software version
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 
 # software config
 UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
 UPLOAD_RESULTS_SOFTWARE_PROJECT_PARAM = "cytomine_id_project"
-EOS_STATS_FILENAME = "eos-stats"
+EOS_STATS_FILENAME = "eos-stats.json"
 EOS_STATS_FILE_TYPE =  "stats"
 HD_REGIONS_TERMNAME = "Mayor densidad"
 
