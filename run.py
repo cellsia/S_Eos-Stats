@@ -12,7 +12,7 @@ from cytomine.models import ImageInstanceCollection, JobData, AnnotationCollecti
 from cytomine.models.software import JobDataCollection, JobParameterCollection
 
 # software version
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 # software config
 UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
@@ -125,7 +125,7 @@ def _upload_eos_stats_file(job, hd_poly, density, image_surface, white_pixels, j
         "white-pixels":white_pixels,
         "cantidad-total":len(job_detections),
         "cantidad-media": int(len(job_detections) / image_surface),
-        "diag":_get_diag(len(job_detections))
+        "diag":_get_diag(density)
     }
 
     # ----- upload stats file -----
