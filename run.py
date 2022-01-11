@@ -12,7 +12,7 @@ from cytomine.models import ImageInstanceCollection, JobData, AnnotationCollecti
 from cytomine.models.software import JobDataCollection, JobParameterCollection
 
 # software version
-__version__ = "1.0.6"
+__version__ = "1.0.7"
 
 # software config
 UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
@@ -79,7 +79,7 @@ def _fetch_image_and_create_grid(parameters, white_pixels):
     grid_box_side = int(0.18 / (res * 0.001)) # a cuantos píxeles equivale 1 mm de la imagen
     grid = []
 
-    iteration = int(grid_box_side / 3) # prefiero superponer boxes a expensas de rendimiento para una mayor precisión
+    iteration = int(grid_box_side / 1) # prefiero superponer boxes a expensas de rendimiento para una mayor precisión
 
     for x in range(0, w, iteration):
         for y in range(0, h, iteration):
