@@ -12,7 +12,7 @@ from cytomine.models import ImageInstanceCollection, JobData, AnnotationCollecti
 from cytomine.models.software import JobDataCollection, JobParameterCollection
 
 # software version
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 # software config
 UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
@@ -88,7 +88,7 @@ def _fetch_image_and_create_grid(parameters, white_pixels):
 
 
     
-    image_surface = res * res * white_pixels * 0.001
+    image_surface = res * res * white_pixels * 0.001 * 5.5556
     
 
     return grid, image_id, image_surface
@@ -124,7 +124,7 @@ def _upload_eos_stats_file(job, hd_poly, density, image_surface, white_pixels, j
         "image-surface":image_surface,
         "white-pixels":white_pixels,
         "cantidad-total":len(job_detections),
-        "cantidad-media": int((len(job_detections) * 0.18) / image_surface),
+        "cantidad-media": int(len(job_detections) / image_surface),
         "diag":_get_diag(density)
     }
 
