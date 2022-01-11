@@ -12,7 +12,7 @@ from cytomine.models import ImageInstanceCollection, JobData, AnnotationCollecti
 from cytomine.models.software import JobDataCollection, JobParameterCollection
 
 # software version
-__version__ = "1.0.7"
+__version__ = "1.0.9"
 
 # software config
 UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
@@ -76,10 +76,10 @@ def _fetch_image_and_create_grid(parameters, white_pixels):
     h = imageinstance.height
     res = imageinstance.resolution # micrometro por pixel
 
-    grid_box_side = int(0.18 / (res * 0.001)) # a cuantos píxeles equivale 1 mm de la imagen
+    grid_box_side = int(0.4243 / (res * 0.001)) # a cuantos píxeles equivale 1 mm de la imagen
     grid = []
 
-    iteration = int(grid_box_side / 1) # prefiero superponer boxes a expensas de rendimiento para una mayor precisión
+    iteration = int(grid_box_side / 2) # prefiero superponer boxes a expensas de rendimiento para una mayor precisión
 
     for x in range(0, w, iteration):
         for y in range(0, h, iteration):
@@ -88,7 +88,7 @@ def _fetch_image_and_create_grid(parameters, white_pixels):
 
 
     
-    image_surface = res * res * white_pixels * 0.001 * 0.18
+    image_surface = res * res * white_pixels * 0.001
     
 
     return grid, image_id, image_surface
@@ -124,7 +124,7 @@ def _upload_eos_stats_file(job, hd_poly, density, image_surface, white_pixels, j
         "image-surface":image_surface,
         "white-pixels":white_pixels,
         "cantidad-total":len(job_detections),
-        "cantidad-media": int(len(job_detections) / image_surface),
+        "cantidad-media": int((len(job_detections) * 0.4243) / image_surface),
         "diag":_get_diag(density)
     }
 
