@@ -12,7 +12,7 @@ from cytomine.models import ImageInstanceCollection, JobData, AnnotationCollecti
 from cytomine.models.software import JobDataCollection, JobParameterCollection
 
 # software version
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
 # software config
 UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
@@ -111,6 +111,9 @@ def _calculate_highest_density_polygon(job_detections, image_grid):
             hd_poly.append(poly)
         else:
             continue
+
+    if maxim == 0:
+        hd_poly = []
 
     return hd_poly, maxim
 
