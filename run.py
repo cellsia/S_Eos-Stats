@@ -12,7 +12,7 @@ from cytomine.models import ImageInstanceCollection, JobData, AnnotationCollecti
 from cytomine.models.software import JobDataCollection, JobParameterCollection
 
 # software version
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 # software config
 UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
@@ -22,7 +22,8 @@ EOS_STATS_FILE_TYPE =  "stats"
 HD_REGIONS_TERMNAME = "Mayor densidad"
 
 
-# STEP 1: fetch image detections
+
+# STEP 1: fetch job detections
 def _fetch_job_detections(working_path, parameters):
 
     job_id = parameters.job_id
@@ -77,6 +78,9 @@ def _fetch_image_and_create_grid(parameters, white_pixels):
     res = imageinstance.resolution # micrometro por pixel
 
     grid_box_side = int(0.4243 / (res * 0.001)) # a cuantos píxeles equivale 1 mm de la imagen
+    field_pixels = grid_box_side * grid_box_side # píxeles por campo
+    tissue_fields = white_pixels / field_pixels # cuantos campos tiene el tejido en la imagen
+
     grid = []
 
     iteration = int(grid_box_side / 2) # prefiero superponer boxes a expensas de rendimiento para una mayor precisión
@@ -85,13 +89,9 @@ def _fetch_image_and_create_grid(parameters, white_pixels):
         for y in range(0, h, iteration):
 
             grid.append(Polygon([[x,y],[x+grid_box_side,y],[x+grid_box_side,y+grid_box_side],[x,y+grid_box_side]]))
-
-
-    
-    image_surface = res * res * white_pixels * 0.001 * 5.5556
     
 
-    return grid, image_id, image_surface
+    return grid, image_id, tissue_fields
     
 
 # STEP 3: calculate the highest density polygon
@@ -116,15 +116,15 @@ def _calculate_highest_density_polygon(job_detections, image_grid):
 
 
 # STEP 4: upload eos-stats file
-def _upload_eos_stats_file(job, hd_poly, density, image_surface, white_pixels, job_detections) -> None:
+def _upload_eos_stats_file(job, hd_poly, density, tissue_fields, white_pixels, job_detections) -> None:
 
     eos_stats = {
         "number-of-regions":len(hd_poly),
         "density":density,
-        "image-surface":image_surface,
+        "tissue-fields":tissue_fields,
         "white-pixels":white_pixels,
         "cantidad-total":len(job_detections),
-        "cantidad-media": int(len(job_detections) / image_surface),
+        "cantidad-media": int(len(job_detections) / tissue_fields),
         "diag":_get_diag(density)
     }
 
@@ -143,11 +143,11 @@ def _get_diag(num):
     if num < 15:
         return "NEGATIVO PARA ESOFAGITIS EOSINOFÍLICA"
     elif (15 <= num <= 25):
-        return "INTENSIDAD LEVE"
+        return "ESOFAGITIS EOSINOFÍLICA DE INTENSIDAD LEVE"
     elif (25 < num <= 50):
-        return "INTENSIDAD MODERADA"
+        return "ESOFAGITIS EOSINOFÍLICA DE INTENSIDAD MODERADA"
     elif num > 50:
-        return "INTENSIDAD GRAVE"
+        return "ESOFAGITIS EOSINOFÍLICA DE INTENSIDAD GRAVE"
 
 
 
@@ -185,13 +185,13 @@ def run(cyto_job, parameters):
         job_detections, white_pixels = _fetch_job_detections(working_path, parameters)
         
         # STEP 2: fetch image and create grid
-        image_grid, image_id, image_surface = _fetch_image_and_create_grid(parameters, white_pixels)
+        image_grid, image_id, tissue_fields = _fetch_image_and_create_grid(parameters, white_pixels)
 
         # STEP 3: calculate the highest density polygon
         hd_poly, density = _calculate_highest_density_polygon(job_detections, image_grid)
 
         # STEP 4: upload eos-stats file
-        _upload_eos_stats_file(job, hd_poly, density, image_surface, white_pixels, job_detections)
+        _upload_eos_stats_file(job, hd_poly, density, tissue_fields, white_pixels, job_detections)
 
         # STEP 5: upload hd annotation
         _upload_hd_annotation(job, hd_poly, parameters, image_id)
