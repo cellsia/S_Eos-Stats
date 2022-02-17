@@ -1,5 +1,5 @@
 # python modules
-from shapely.geometry import Polygon, MultiPoint
+from shapely.geometry import Polygon
 import logging
 import shutil
 import json
@@ -8,23 +8,22 @@ import os
 
 # cytomine modules
 import cytomine
-from cytomine.models import ImageInstanceCollection, JobData, AnnotationCollection, Annotation, Project, TermCollection
+from cytomine.models import JobData, AnnotationCollection, Annotation, Project, TermCollection
 from cytomine.models.software import JobDataCollection, JobParameterCollection
 
 # software version
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 
 # software config
-UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
-UPLOAD_RESULTS_SOFTWARE_PROJECT_PARAM = "cytomine_id_project"
 EOS_STATS_FILENAME = "eos-stats.json"
-EOS_STATS_FILE_TYPE =  "stats"
+EOS_STATS_FILETYPE =  "stats"
 HD_REGIONS_TERMNAME = "Mayor densidad"
+UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
 
 
 
-# STEP 1: fetch job detections
-def _fetch_job_detections(working_path, parameters):
+# STEP 1: fetch diag
+def _fetch_job_diag(working_path, parameters):
 
     job_id = parameters.job_id
     jobdatacol = JobDataCollection().fetch_with_filter(key="job", value=job_id)
@@ -38,129 +37,37 @@ def _fetch_job_detections(working_path, parameters):
 
     os.remove(filepath)
 
-    points = _convert_rectangles_to_points(detections["rectangles"])
-    white_pixels = detections["white-pixels"]
-
-    return points, white_pixels
+    diag = detections["diag"]
+    return diag
 
 
-def _convert_rectangles_to_points(rectangles):
+# STEP 2: upload diag as stats file
+def _upload_diag_file(job, diag) -> None:
 
-    points = []
-
-    for rectangle in rectangles:
-
-        x0 = rectangle["x0"]
-        x1 = rectangle["x1"]
-        y0 = rectangle["y0"]
-        y1 = rectangle["y1"]
-        
-        poly = Polygon([[x0,y0],[x1,y0],[x1,y1],[x0,y1]])
-        points.append(poly.centroid)
-
-    return points
-
-# STEP 2: fetch image and create grid
-def _fetch_image_and_create_grid(parameters, white_pixels):
-
-    job_id = parameters.job_id
-    jobparameters = JobParameterCollection().fetch_with_filter(key="job", value=job_id)
-    image_param = [p for p in jobparameters if p.name == UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM][0]
-    image_id = image_param.value
-    project_param = [p for p in jobparameters if p.name == UPLOAD_RESULTS_SOFTWARE_PROJECT_PARAM][0]
-    project_id = project_param.value
-
-    imageinstancecol = ImageInstanceCollection().fetch_with_filter(key="project",value=project_id)
-    imageinstance = [image for image in imageinstancecol if image.id == int(image_id)][0]
-    
-    w = imageinstance.width
-    h = imageinstance.height
-    res = imageinstance.resolution # micrometro por pixel
-
-    grid_box_side = int(0.4243 / (res * 0.001)) # a cuantos píxeles equivale 1 mm de la imagen
-    field_pixels = grid_box_side * grid_box_side # píxeles por campo
-    tissue_fields = white_pixels / field_pixels # cuantos campos tiene el tejido en la imagen
-
-    grid = []
-
-    iteration = int(grid_box_side / 2) # prefiero superponer boxes a expensas de rendimiento para una mayor precisión
-
-    for x in range(0, w, iteration):
-        for y in range(0, h, iteration):
-
-            grid.append(Polygon([[x,y],[x+grid_box_side,y],[x+grid_box_side,y+grid_box_side],[x,y+grid_box_side]]))
-    
-
-    return grid, image_id, tissue_fields
-    
-
-# STEP 3: calculate the highest density polygon
-def _calculate_highest_density_polygon(job_detections, image_grid):
-
-    hd_poly = []
-    maxim = 0
-
-    for poly in image_grid:
-
-        inside_points = [p for p in job_detections if poly.contains(p)]
-        if len(inside_points) > maxim:
-            maxim = len(inside_points)
-            hd_poly = []
-            hd_poly.append(poly)
-        elif len(inside_points) == maxim:
-            hd_poly.append(poly)
-        else:
-            continue
-
-    if maxim == 0:
-        hd_poly = []
-
-    return hd_poly, maxim
-
-
-# STEP 4: upload eos-stats file
-def _upload_eos_stats_file(job, hd_poly, density, tissue_fields, white_pixels, job_detections) -> None:
-
-    eos_stats = {
-        "number-of-regions":len(hd_poly),
-        "density":density,
-        "tissue-fields":tissue_fields,
-        "white-pixels":white_pixels,
-        "cantidad-total":len(job_detections),
-        "cantidad-media": int(len(job_detections) / tissue_fields),
-        "diag":_get_diag(density)
-    }
+    eos_stats = diag
 
     # ----- upload stats file -----
     f = open("tmp/"+EOS_STATS_FILENAME, "w+")
     json.dump(eos_stats, f)
     f.close()
 
-    job_data = JobData(job.id, EOS_STATS_FILE_TYPE, EOS_STATS_FILENAME).save()
+    job_data = JobData(job.id, EOS_STATS_FILETYPE, EOS_STATS_FILENAME).save()
     job_data.upload("tmp/"+EOS_STATS_FILENAME)
     os.system("rm tmp/"+EOS_STATS_FILENAME)
 
+# STEP 3: upload hd annotation
+def _upload_hd_annotation(job, diag, parameters):
 
-def _get_diag(num):
-
-    if num < 15:
-        return "NEGATIVO PARA ESOFAGITIS EOSINOFÍLICA"
-    elif (15 <= num <= 25):
-        return "ESOFAGITIS EOSINOFÍLICA DE INTENSIDAD LEVE"
-    elif (25 < num <= 50):
-        return "ESOFAGITIS EOSINOFÍLICA DE INTENSIDAD MODERADA"
-    elif num > 50:
-        return "ESOFAGITIS EOSINOFÍLICA DE INTENSIDAD GRAVE"
-
-
-
-
-# STEP 5: upload hd annotation
-def _upload_hd_annotation(job, hd_poly, parameters, image_id):
+    job_id = parameters.job_id
+    jobparameters = JobParameterCollection().fetch_with_filter(key="job", value=job_id)
+    image_param = [p for p in jobparameters if p.name == UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM][0]
+    image_id = image_param.value 
 
     project = Project().fetch(job.project)
     termcol = TermCollection().fetch_with_filter("ontology", project.ontology) # fetch term collection ...
     term_id = [t.id for t in termcol if t.name == HD_REGIONS_TERMNAME]
+
+    hd_poly = [Polygon(points) for points in diag["hd_polygons"]]
 
     for poly in hd_poly:
         annotations = AnnotationCollection()
@@ -185,19 +92,13 @@ def run(cyto_job, parameters):
     try:
 
         # STEP 1: fetch job detections
-        job_detections, white_pixels = _fetch_job_detections(working_path, parameters)
-        
-        # STEP 2: fetch image and create grid
-        image_grid, image_id, tissue_fields = _fetch_image_and_create_grid(parameters, white_pixels)
+        diag = _fetch_job_diag(working_path, parameters)
 
-        # STEP 3: calculate the highest density polygon
-        hd_poly, density = _calculate_highest_density_polygon(job_detections, image_grid)
-
-        # STEP 4: upload eos-stats file
-        _upload_eos_stats_file(job, hd_poly, density, tissue_fields, white_pixels, job_detections)
+        # STEP 2: upload diag as stats file
+        _upload_diag_file(job, diag)
 
         # STEP 5: upload hd annotation
-        _upload_hd_annotation(job, hd_poly, parameters, image_id)
+        _upload_hd_annotation(job, diag, parameters)
         
 
 
