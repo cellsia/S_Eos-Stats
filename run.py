@@ -69,11 +69,17 @@ def _upload_hd_annotation(job, diag, parameters):
 
     hd_poly = [Polygon(points) for points in diag["hd_polygons"]]
 
-    for poly in hd_poly:
+
+    # for poly in hd_poly:
+    #     annotations = AnnotationCollection()
+    #     annotations.append(Annotation(location=poly.wkt, id_image=image_id, id_project=job.project, id_terms=term_id))
+    #     annotations.save()
+
+    if len(hd_poly) > 0: 
+        poly = hd_poly[0]
         annotations = AnnotationCollection()
         annotations.append(Annotation(location=poly.wkt, id_image=image_id, id_project=job.project, id_terms=term_id))
         annotations.save()
-
 
 # main function 
 def run(cyto_job, parameters):
