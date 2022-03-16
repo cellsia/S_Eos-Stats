@@ -12,12 +12,13 @@ from cytomine.models import JobData, AnnotationCollection, Annotation, Project, 
 from cytomine.models.software import JobDataCollection, JobParameterCollection
 
 # software version
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 
 # software config
 EOS_STATS_FILENAME = "eos-stats.json"
 EOS_STATS_FILETYPE =  "stats"
 HD_REGIONS_TERMNAME = "Mayor densidad"
+MICROABS_TERMNAME = "Microabscesos"
 UPLOAD_RESULTS_SOFTWARE_IMAGE_PARAM = "cytomine_image"
 
 
@@ -80,6 +81,18 @@ def _upload_hd_annotation(job, diag, parameters):
         annotations = AnnotationCollection()
         annotations.append(Annotation(location=poly.wkt, id_image=image_id, id_project=job.project, id_terms=term_id))
         annotations.save()
+
+    microabs = [Polygon(points) for points in diag["microabs"]]
+    project = Project().fetch(job.project)
+    termcol = TermCollection().fetch_with_filter("ontology", project.ontology) # fetch term collection ...
+    term_id = [t.id for t in termcol if t.name == MICROABS_TERMNAME]
+    
+    
+    if len(microabs) > 0: 
+        for poly in microabs:
+            annotations = AnnotationCollection()
+            annotations.append(Annotation(location=poly.wkt, id_image=image_id, id_project=job.project, id_terms=term_id))
+            annotations.save()
 
 # main function 
 def run(cyto_job, parameters):
