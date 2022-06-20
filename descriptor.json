@@ -2,7 +2,7 @@
   "name": "Eos Stats",
   "description": "Plugin to show up statistics from Eos Study",
   "container-image": {
-    "image": "glardies/s_eos-stats",
+    "image": "cellsia/s_eos-stats",
     "type": "singularity"
   },
   "command-line": "[CYTOMINE_HOST] [CYTOMINE_PUBLIC_KEY] [CYTOMINE_PRIVATE_KEY] [CYTOMINE_ID_PROJECT] [CYTOMINE_ID_SOFTWARE] [CYTOMINE_IMAGE] [JOB_ID]",
